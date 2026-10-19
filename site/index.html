@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Автобус">
+<meta name="theme-color" content="#1f5ac2">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Автобус ⇄ Уручье</title>
+<style>
+  :root {
+    --bg: #f2f4f8; --card: #ffffff; --ink: #1a2332; --muted: #7b8794;
+    --blue: #1f5ac2; --blue-bg: #e8f0fc; --line: #e5e9f0; --ok: #178a4c;
+    --shadow: 0 1px 3px rgba(20,30,50,.08), 0 4px 16px rgba(20,30,50,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #10151d; --card: #1a2230; --ink: #e8edf5; --muted: #8d99ab;
+      --blue: #6ea2f0; --blue-bg: #1d2b45; --line: #2a3547; --ok: #4cc98a;
+      --shadow: 0 1px 3px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--bg); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    color: var(--ink);
+    padding: env(safe-area-inset-top) 12px calc(24px + env(safe-area-inset-bottom));
+    max-width: 520px; margin: 0 auto;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top { display:flex; align-items:center; gap:10px; padding: 14px 2px 10px; }
+  .top .logo { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(160deg,#2f6fdc,#1f5ac2);
+    display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:17px; flex: none; }
+  .top h1 { font-size: 17px; margin: 0; line-height: 1.2; }
+  .top .clock { margin-left:auto; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .top .clock b { color: var(--ink); font-size: 15px; }
+
+  .seg { display:flex; background: var(--line); border-radius: 12px; padding: 3px; margin: 4px 0 12px; }
+  .seg button {
+    flex:1; border:0; background: transparent; color: var(--muted); font-size: 14px; font-weight: 600;
+    padding: 8px 4px; border-radius: 10px; font-family: inherit; cursor: pointer;
+  }
+  .seg button.on { background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
+
+  .stops { display:flex; gap: 7px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+  .stops::-webkit-scrollbar { display:none; }
+  .stopchip {
+    flex: none; border: 1.5px solid var(--line); background: var(--card); color: var(--ink);
+    font-size: 12.5px; font-weight: 600; padding: 8px 12px; border-radius: 20px; font-family: inherit; cursor: pointer;
+  }
+  .stopchip.on { border-color: var(--blue); color: var(--blue); background: var(--blue-bg); }
+
+  .next {
+    background: var(--card); border-radius: 16px; padding: 16px 16px 14px; box-shadow: var(--shadow); margin: 6px 0 12px;
+  }
+  .next .lab { font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .next .row { display:flex; align-items: center; gap: 12px; margin-top: 8px; }
+  .next .time { font-size: 40px; font-weight: 800; letter-spacing: -1px; font-variant-numeric: tabular-nums; line-height: 1; }
+  .next .mid { flex:1; min-width:0; }
+  .next .thr { font-size: 15px; font-weight: 700; color: var(--ok); }
+  .next .thr.soon { color:#c2452e; }
+  .next .arr { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  .next .arr b { color: var(--blue); }
+
+  .list { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
+  .list .h {
+    display:flex; align-items:center; justify-content: space-between;
+    padding: 11px 14px; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); font-weight: 700;
+    border-bottom: 1px solid var(--line);
+  }
+  .rowline {
+    display:flex; align-items: center; gap: 10px; padding: 11px 14px; border-bottom: 1px solid var(--line);
+  }
+  .rowline:last-child { border-bottom: 0; }
+  .rowline .t { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; width: 52px; flex:none; }
+  .rowline .thr { margin-left:auto; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .rowline .arr { font-size: 12px; color: var(--muted); flex: 1; min-width: 0; line-height: 1.35; padding: 2px 0; }
+
+  .rt { display:inline-block; min-width: 34px; text-align:center; padding: 3px 8px; border-radius: 10px;
+        font-weight: 700; font-size: 12px; white-space: nowrap; flex:none; }
+  .rt-362  { background:#dbeafe; color:#1e3a8a; }
+  .rt-334  { background:#dcfce7; color:#14532d; }
+  .rt-334u { background:#ccfbf1; color:#115e59; }
+  .rt-309  { background:#fef3c7; color:#92400e; }
+  .rt-309u { background:#fde68a; color:#92400e; }
+  .rt-310  { background:#ede9fe; color:#5b21b6; }
+  .rt-386  { background:#fee2e2; color:#991b1b; }
+  .rt-386a { background:#fecaca; color:#991b1b; }
+  .rt-386b { background:#ffd4d4; color:#7f1d1d; }
+  .rt-386u { background:#ffe4e6; color:#9f1239; }
+  .rt-31   { background:#e5e7eb; color:#374151; }
+  @media (prefers-color-scheme: dark) {
+    .rt-362  { background:#27407e; color:#cfe0fb; }
+    .rt-334  { background:#1e4d33; color:#c9f0d6; }
+    .rt-334u { background:#144d47; color:#c2f2e8; }
+    .rt-309  { background:#6b4a12; color:#fbe8bd; }
+    .rt-309u { background:#7a5615; color:#fbe8bd; }
+    .rt-310  { background:#443178; color:#e4dcfb; }
+    .rt-386  { background:#6b2424; color:#fbd5d5; }
+    .rt-386a { background:#752828; color:#fbd5d5; }
+    .rt-386b { background:#7e2c2c; color:#fbd5d5; }
+    .rt-386u { background:#7a2c43; color:#fbd9e2; }
+    .rt-31   { background:#3a4250; color:#e2e5ea; }
+  }
+
+  .none { text-align:center; padding: 22px 16px; color: var(--muted); font-size: 14px; }
+  .none b { color: var(--ink); }
+
+  .toggle { background:none; border:0; color: var(--blue); font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; text-transform: none; letter-spacing: 0; }
+
+  .daybar { display:flex; gap: 6px; margin: 2px 0 12px; align-items: center; }
+  .daybar .lab { font-size: 11.5px; color: var(--muted); margin-right: 2px; }
+  .daybtn { border: 1.5px solid var(--line); background: var(--card); color: var(--muted); font-size: 12px; font-weight: 600;
+    padding: 5px 11px; border-radius: 16px; font-family: inherit; cursor: pointer; }
+  .daybtn.on { border-color: var(--blue); color: var(--blue); background: var(--blue-bg); }
+
+  .info { margin-top: 14px; font-size: 11.5px; color: var(--muted); line-height: 1.55; padding: 0 4px; }
+  .info a { color: var(--blue); }
+  .pdflink { text-align:center; margin: 14px 0 4px; }
+  .pdflink a { color: var(--blue); font-size: 13.5px; font-weight: 600; text-decoration: none; }
+  .sheet-btn { width:100%; margin-top: 12px; background: var(--card); border: 1px solid var(--line); color: var(--muted);
+    border-radius: 12px; padding: 11px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; box-shadow: var(--shadow); }
+  dialog {
+    border: 0; padding: 0; background: var(--card); color: var(--ink); border-radius: 18px;
+    width: min(92vw, 430px); max-height: 80vh;
+  }
+  dialog::backdrop { background: rgba(10,15,25,.5); }
+  dialog .inner { padding: 18px 18px 14px; font-size: 13.5px; line-height: 1.6; overflow-y: auto; }
+  dialog h3 { margin: 0 0 8px; font-size: 16px; }
+  dialog ul { margin: 0 0 10px; padding-left: 18px; }
+  dialog li { margin-bottom: 6px; }
+  dialog .close { width: 100%; background: var(--blue-bg); color: var(--blue); border: 0; border-radius: 12px; padding: 12px;
+    font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="logo">🚌</div>
+  <h1>Белая берёза ⇄ метро Уручье</h1>
+  <div class="clock">сейчас<br><b id="clock">--:--</b></div>
+</div>
+
+<div class="seg" id="seg">
+  <button data-dir="toMinsk" class="on">На метро →</button>
+  <button data-dir="home">← Домой</button>
+</div>
+
+<div class="stops" id="stops"></div>
+
+<div class="daybar" id="daybar">
+  <span class="lab">День:</span>
+  <button class="daybtn on" data-day="auto">сегодня</button>
+  <button class="daybtn" data-day="wd">пн–пт</button>
+  <button class="daybtn" data-day="sa">сб</button>
+  <button class="daybtn" data-day="su">вс</button>
+</div>
+
+<div id="main"></div>
+
+<button class="sheet-btn" id="openInfo">Примечания и источники</button>
+<div class="info" id="dataInfo"></div>
+<p class="pdflink"><a href="raspisanie.pdf">Расписание на печать (PDF)</a></p>
+
+<dialog id="infoDlg">
+  <div class="inner">
+    <h3>О расписании</h3>
+    <ul>
+      <li><b>Данные — табло перевозчиков</b> на 19.10.2026: пригородные (362, 334, 334у, 309, 309у, 310, 386, 386а, 386б, 386у) — Минскоблавтотранс, №31 — Минсктранс.</li>
+      <li>Сейчас действует <b>временная схема</b> (с 28.09.2026, ориентировочно до 12.12.2026): из-за закрытия ж/д переезда в Городище маршруты 309/310/386/334/334у идут через Колодищи и Старину. №371 отменён, №234 не курсирует.</li>
+      <li>Время — плановое (без пробок). «На метро» — отправление с вашей остановки; прибытие на Уручье показано синим.</li>
+      <li>Живое положение автобусов: <a href="https://transport.iba.by/mopt/Home/Index/minsk" target="_blank">табло Минскоблавтотранс</a>.</li>
+      <li>Расписание может уточняться — перед важной поездкой сверяйтесь с табло.</li>
+    </ul>
+    <button class="close" onclick="document.getElementById('infoDlg').close()">Понятно</button>
+  </div>
+</dialog>
+
+<script>
+'use strict';
+
+/* ================== ДАННЫЕ (табло перевозчиков, 19.10.2026) ================== */
+
+// Направление «на метро»: по остановкам
+const STOP_LIST = [
+  { id:'starina', name:'Старина (школа)', short:'Старина', tiny:'Старина' },
+  { id:'faktel',  name:'с/т Голубой факел', short:'Голуб. факел', tiny:'факел' },
+  { id:'povorot', name:'Поворот на Глебковичи', short:'Поворот', tiny:'Поворот' },
+];
+
+const TO_METRO = {
+  starina: [
+    { n:'362',  off:36, wd:['6:58','8:33','9:58','11:58','12:53','15:08','17:18','18:58','21:08'], sa:['7:13','8:33','10:18','11:58','13:28','15:18','18:58','21:08'], su:['7:13','8:33','10:18','11:58','13:28','15:18','18:58','21:08'] },
+    { n:'334',  off:30, wd:['6:07','19:42'], sa:['6:07','19:42'], su:['6:07','19:42'] },
+    { n:'334у', off:33, wd:['22:07'], sa:['22:07'], su:['22:07'] },
+    { n:'309',  off:28, wd:['6:08','7:21','9:13','10:28','12:18','15:53'], sa:['6:08','7:21','10:28'], su:['6:08','10:28'] },
+    { n:'310',  off:28, wd:['18:33','20:58'], sa:['17:48','20:58'], su:['17:48'] },
+    { n:'386',  off:28, wd:['8:23','9:43','10:48','13:03','14:18','16:48','19:23'], sa:['6:53','8:23','9:43','10:48','13:13','14:18','16:48','19:23'], su:['7:33','8:23','9:48','10:48','13:13','14:18','16:48','19:23'] },
+    { n:'386а', off:31, wd:['6:46'], sa:['6:46'], su:['6:46'] },
+    { n:'386б', off:28, wd:['21:43'], sa:['21:43'], su:['21:43'] },
+    { n:'386у', off:28, wd:['23:42'], sa:['23:42'], su:['23:42'] },
+  ],
+  faktel: [
+    { n:'362',  off:41, wd:['6:53','8:28','9:53','11:53','12:48','15:03','17:13','18:53','21:03'], sa:['7:08','8:28','10:13','11:53','13:23','15:13','18:53','21:03'], su:['7:08','8:28','10:13','11:53','13:23','15:13','18:53','21:03'] },
+    { n:'334',  off:35, wd:['6:02','19:37'], sa:['6:02','19:37'], su:['6:02','19:37'] },
+    { n:'334у', off:33, wd:['22:02'], sa:['22:02'], su:['22:02'] },
+  ],
+  povorot: [
+    { n:'31', off:31, wd:['7:14','8:07','8:52','9:37','10:22','11:07','11:52','12:22','12:52','13:22','13:52','14:22','14:52','15:37','16:22','17:07','18:22'], sa:['8:07','8:52','9:37','10:22','11:07','11:52','12:22','12:52','13:22','13:52','14:22','14:52','15:37','16:22','17:07','18:07'], su:['8:07','8:52','9:37','10:22','11:07','11:52','12:22','12:52','13:22','13:52','14:22','14:52','15:37','16:22','17:07','18:07'] },
+  ],
+};
+
+// Направление «домой»: отправление со ст.м. Уручье
+const FROM_URUCHE = [
+  { n:'362',  stops:{ starina:29, faktel:33 }, wd:['5:55','7:30','8:55','10:55','11:50','14:05','16:15','17:55','20:05'], sa:['6:10','7:30','9:15','10:55','12:25','14:15','17:55','20:05'], su:['6:10','7:30','9:15','10:55','12:25','14:15','17:55','20:05'] },
+  { n:'334',  stops:{ starina:25, faktel:28 }, wd:['18:45','21:10'], sa:['18:45','21:10'], su:['18:45','21:10'] },
+  { n:'334у', stops:{ starina:25, faktel:28 }, wd:['5:25'], sa:['5:25'], su:['5:25'] },
+  { n:'309',  stops:{ starina:25 }, wd:['7:55','9:10','11:00','14:35'], sa:['9:10'], su:['9:10'] },
+  { n:'309у', stops:{ starina:25 }, wd:['5:00','6:10'], sa:['5:00','6:10'], su:['5:00'] },
+  { n:'310',  stops:{ starina:25 }, wd:['17:10','19:35'], sa:['16:25','19:35'], su:['16:25'] },
+  { n:'386',  stops:{ starina:25 }, wd:['7:10','8:30','9:35','11:50','13:05','15:35','18:10','20:20'], sa:['5:45','7:10','8:30','9:35','13:05','15:35','18:10','20:20'], su:['7:10','8:35','9:35','13:05','15:35','18:10','20:20'] },
+  { n:'386а', stops:{ starina:25 }, wd:['22:35'], sa:['22:35'], su:['6:15','22:35'] },
+  { n:'386б', stops:{ starina:25 }, wd:[], sa:['11:50'], su:['11:50'] },
+  { n:'386у', stops:{ starina:25 }, wd:['6:00'], sa:['6:00'], su:['6:00'] },
+  { n:'31',   stops:{ povorot:30 }, wd:['6:34','7:27','8:12','8:57','9:42','10:27','11:12','11:42','12:12','12:42','13:12','13:42','14:12','14:57','15:42','16:27','17:42'], sa:['7:27','8:12','8:57','9:42','10:27','11:12','11:42','12:12','12:42','13:12','13:42','14:12','14:57','15:42','16:27','17:27'], su:['7:27','8:12','8:57','9:42','10:27','11:12','11:42','12:12','12:42','13:12','13:42','14:12','14:57','15:42','16:27','17:27'] },
+];
+
+const STOP_NAME = Object.fromEntries(STOP_LIST.map(s => [s.id, s.name]));
+const STOP_SHORT = Object.fromEntries(STOP_LIST.map(s => [s.id, s.short]));
+const STOP_TINY = Object.fromEntries(STOP_LIST.map(s => [s.id, s.tiny]));
+
+/* ================== ЛОГИКА ================== */
+
+const state = { dir:'toMinsk', stop:'starina', day:'auto', showAll:false };
+
+function dayTypeOf(d) { const w = d.getDay(); return w === 6 ? 'sa' : (w === 0 ? 'su' : 'wd'); }
+function dayNow() { return state.day === 'auto' ? dayTypeOf(new Date()) : state.day; }
+function nextDayType() { const d = new Date(); d.setDate(d.getDate() + 1); return dayTypeOf(d); }
+const DAY_LABEL = { wd:'пн–пт', sa:'суббота', su:'воскресенье' };
+
+function toMin(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+function fmt(mins) { mins = ((mins % 1440) + 1440) % 1440; const h = Math.floor(mins / 60), m = mins % 60; return h + ':' + String(m).padStart(2, '0'); }
+function nowMin() { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
+
+function routeClass(n) {
+  const map = { '362':'362', '334':'334', '334у':'334u', '309':'309', '309у':'309u', '310':'310',
+                '386':'386', '386а':'386a', '386б':'386b', '386у':'386u', '31':'31' };
+  return 'rt rt-' + (map[n] || '31');
+}
+
+// Все рейсы направления как список {time, min, route, arrMin, arrStr}
+function allTrips() {
+  const day = dayNow();
+  const out = [];
+  if (state.dir === 'toMinsk') {
+    for (const r of TO_METRO[state.stop]) {
+      for (const t of r[day]) {
+        const m = toMin(t);
+        out.push({ t, m, route: r.n, arr: m + r.off, arrStr: fmt(m + r.off) });
+      }
+    }
+  } else {
+    for (const r of FROM_URUCHE) {
+      const stops = Object.entries(r.stops).map(([id, off]) => ({ id, off })).sort((a, b) => a.off - b.off);
+      for (const t of r[day]) {
+        const m = toMin(t);
+        out.push({ t, m, route: r.n, stops: stops.map(s => ({ id: s.id, at: m + s.off })) });
+      }
+    }
+  }
+  out.sort((a, b) => a.m - b.m);
+  return out;
+}
+
+// «← Домой»: остановки рейса одной строкой, напр. «Старина 14:34 · факел 14:38»
+function stopsLine(x) {
+  return x.stops.map(s => STOP_TINY[s.id] + ' ' + fmt(s.at)).join(' · ');
+}
+
+function upcoming(n) {
+  const now = nowMin();
+  return allTrips().filter(x => x.m >= now).slice(0, n);
+}
+
+function firstTomorrow(n) {
+  const daySaved = state.day;
+  state.day = nextDayType();
+  const list = allTrips().slice(0, n);
+  state.day = daySaved;
+  return { list, day: nextDayType() };
+}
+
+function thrText(diff) {
+  if (diff <= 0) return 'сейчас';
+  if (diff < 60) return 'через ' + diff + ' мин';
+  const h = Math.floor(diff / 60), m = diff % 60;
+  return 'через ' + h + ' ч ' + (m ? m + ' мин' : '');
+}
+
+/* ================== РЕНДЕР ================== */
+
+const $ = s => document.querySelector(s);
+
+function renderClock() {
+  const d = new Date();
+  $('#clock').textContent = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+
+function renderStops() {
+  const box = $('#stops');
+  box.innerHTML = '';
+  if (state.dir === 'toMinsk') {
+    for (const s of STOP_LIST) {
+      const b = document.createElement('button');
+      b.className = 'stopchip' + (state.stop === s.id ? ' on' : '');
+      b.textContent = s.name;
+      b.onclick = () => { state.stop = s.id; state.showAll = false; render(); };
+      box.appendChild(b);
+    }
+  } else {
+    const d = document.createElement('div');
+    d.className = 'stopchip on';
+    d.style.cursor = 'default';
+    d.textContent = 'от метро Уручье';
+    box.appendChild(d);
+  }
+}
+
+function renderDaybar() {
+  const dt = dayTypeOf(new Date());
+  const map = { wd:'пн–пт', sa:'сб', su:'вс' };
+  document.querySelectorAll('.daybtn').forEach(b => {
+    const v = b.dataset.day;
+    b.classList.toggle('on', state.day === v);
+    if (v === 'auto') b.textContent = 'сегодня (' + map[dt] + ')';
+  });
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+function render() {
+  renderClock();
+  renderStops();
+  renderDaybar();
+  const main = $('#main');
+  const day = dayNow();
+  const next = upcoming(1);
+  const rest = upcoming(50).slice(1, 6);
+  let html = '';
+
+  if (next.length) {
+    const n0 = next[0];
+    const diff = n0.m - nowMin();
+    const soon = diff <= 5;
+    const arrPhrase = state.dir === 'toMinsk'
+      ? 'на «Уручье» ≈ <b>' + n0.arrStr + '</b>'
+      : 'прибытие: ' + n0.stops.map(s => STOP_SHORT[s.id] + ' ≈ <b>' + fmt(s.at) + '</b>').join(' · ');
+    html += '<div class="next"><div class="lab">Ближайший — ' + DAY_LABEL[day] + '</div>'
+      + '<div class="row"><div class="time">' + n0.t + '</div>'
+      + '<div class="mid"><span class="rt ' + routeClass(n0.route).split(' ')[1] + '" style="font-size:15px;padding:5px 11px;">' + n0.route + '</span>'
+      + '<div class="thr' + (soon ? ' soon' : '') + '" style="margin-top:6px">' + thrText(diff) + '</div>'
+      + '<div class="arr">' + arrPhrase + '</div></div></div></div>';
+  } else {
+    const tm = firstTomorrow(3);
+    html += '<div class="next"><div class="lab">Сегодня больше нет рейсов</div>'
+      + '<div style="font-size:15px;margin-top:8px;">Первые завтра (' + DAY_LABEL[tm.day] + '):</div>'
+      + tm.list.map(x => '<div class="rowline" style="border:0;padding:6px 0 0"><span class="t">' + x.t + '</span>'
+        + '<span class="' + routeClass(x.route) + '">' + x.route + '</span>'
+        + '<span class="arr" style="margin-left:8px;color:var(--muted);font-size:12px">' + (state.dir==='toMinsk' ? 'на Уручье ≈ ' + x.arrStr : stopsLine(x)) + '</span></div>').join('')
+      + '</div>';
+  }
+
+  if (rest.length) {
+    html += '<div class="list"><div class="h"><span>Ещё сегодня</span><button class="toggle" id="allBtn">' + (state.showAll ? 'свернуть' : 'все рейсы') + '</button></div>';
+    const rows = state.showAll ? upcoming(50) : rest;
+    for (const x of rows) {
+      const diff = x.m - nowMin();
+      html += '<div class="rowline"><span class="t">' + x.t + '</span>'
+        + '<span class="' + routeClass(x.route) + '">' + x.route + '</span>'
+        + '<span class="arr">' + (state.dir === 'toMinsk' ? 'метро ' + x.arrStr : stopsLine(x)) + '</span>'
+        + '<span class="thr">' + (diff <= 0 ? '' : thrText(diff)) + '</span></div>';
+    }
+    html += '</div>';
+  } else if (next.length) {
+    html += '<div class="list"><div class="none">Это был последний рейс сегодня</div></div>';
+  }
+
+  main.innerHTML = html;
+  const ab = $('#allBtn');
+  if (ab) ab.onclick = () => { state.showAll = !state.showAll; render(); };
+
+  $('#dataInfo').innerHTML = 'Данные: табло Минскоблавтотранс и Минсктранс, 19.10.2026 · расписание временно изменено с 28.09.2026 (переезд в Городище)';
+}
+
+document.querySelectorAll('#seg button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('#seg button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    state.dir = b.dataset.dir;
+    state.showAll = false;
+    history.replaceState(null, '', '#' + state.dir);
+    render();
+  };
+});
+// Прямая ссылка: index.html#home открывает сразу «← Домой»
+(function () {
+  const h = location.hash.replace('#', '');
+  if (h === 'home' || h === 'toMinsk') {
+    state.dir = h;
+    state.showAll = false;
+    document.querySelectorAll('#seg button').forEach(x => x.classList.toggle('on', x.dataset.dir === h));
+  }
+})();
+document.querySelectorAll('.daybtn').forEach(b => {
+  b.onclick = () => { state.day = b.dataset.day; render(); };
+});
+$('#openInfo').onclick = () => $('#infoDlg').showModal();
+
+render();
+setInterval(render, 30000);
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
